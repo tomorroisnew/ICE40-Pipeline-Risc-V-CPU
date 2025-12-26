@@ -31,7 +31,6 @@ test:
 	@echo "--- Simulating Module: $(MODULE) ---"
 	$(IVERILOG) -g2012 -o $(BUILD_DIR)/$(MODULE)_sim.out $(SRC_DIR)/$(MODULE).sv $(TB_DIR)/tb_$(MODULE).sv
 	$(VVP) $(BUILD_DIR)/$(MODULE)_sim.out
-	gtkwave dump.vcd
 	@echo "To view waves: $(GTKWAVE) dump.vcd"
 
 clean:
