@@ -14,6 +14,8 @@ module tb_InstructionFetcher;
     wire [31:0] instructionB;
     wire        instructionA_valid;
     wire        instructionB_valid;
+    wire [31:0] addressA;
+    wire [31:0] addressB;
 
     // Instantiate the DUT
     InstructionFetcher dut (
@@ -27,7 +29,9 @@ module tb_InstructionFetcher;
         .instructionA(instructionA),
         .instructionB(instructionB),
         .instructionA_valid(instructionA_valid),
-        .instructionB_valid(instructionB_valid)
+        .instructionB_valid(instructionB_valid),
+        .addressA(addressA),
+        .addressB(addressB)
     );
 
     // Clock generation
@@ -36,20 +40,20 @@ module tb_InstructionFetcher;
     // Mock Instruction Memory
     logic [63:0] mem [0:15];
 
-    always_comb begin
+    always_ff @(posedge clk) begin
         // Default value if address is out of bounds
-        fetchedInstruction = 64'hDEADBEEF_DEADBEEF;
+        //fetchedInstruction = 64'hDEADBEEF_DEADBEEF;
         // The instructionAddress is 8-byte aligned
         case (instructionAddress)
-            32'h0:    fetchedInstruction = mem[0];
-            32'h8:    fetchedInstruction = mem[1];
-            32'h10:   fetchedInstruction = mem[2];
-            32'h18:   fetchedInstruction = mem[3];
-            32'h20:   fetchedInstruction = mem[4];
-            32'h28:   fetchedInstruction = mem[5];
-            32'h30:   fetchedInstruction = mem[6];
-            32'h38:   fetchedInstruction = mem[7];
-            default:  fetchedInstruction = 64'hDEADBEEF_DEADBEEF;
+            32'h0:    fetchedInstruction <= mem[0];
+            32'h8:    fetchedInstruction <= mem[1];
+            32'h10:   fetchedInstruction <= mem[2];
+            32'h18:   fetchedInstruction <= mem[3];
+            32'h20:   fetchedInstruction <= mem[4];
+            32'h28:   fetchedInstruction <= mem[5];
+            32'h30:   fetchedInstruction <= mem[6];
+            32'h38:   fetchedInstruction <= mem[7];
+            default:  fetchedInstruction <= 64'hDEADBEEF_DEADBEEF;
         endcase
     end
 
@@ -93,6 +97,22 @@ module tb_InstructionFetcher;
         branchTaken = 0;
         #10
         #10
+        #10
+        stall = 1;
+        #10
+        branchTaken = 1;
+        branchTarget = 32'h14;
+        #10
+        branchTaken = 0;
+        stall = 0;
+        #10
+        #10
+        #10
+        stall = 1;
+        #10
+        stall = 0;
+        #10
+        #10
         
         // if (instructionA === 32'h00000000 && instructionB === 32'h11111111 && instructionA_valid && instructionB_valid)
         //     $display("PASSED: PC=0 fetch");
@@ -133,13 +153,13 @@ module tb_InstructionFetcher;
             if (!stall) begin
                 if (instructionA_valid) begin
                     consumed_history[write_ptr] <= instructionA;
-                    $display("Time: %0t | [BUFFER] Consumed A: %h (Total: %0d)", $time, instructionA, write_ptr + 1);
+                    $display("Time: %0t | [BUFFER] Consumed A: %h PC: %h (Total: %0d)", $time, instructionA, addressA, write_ptr + 1);
                     write_ptr <= write_ptr + 1;
                     
                     // If A and B are both valid, consume B too (Double Push)
                     if (instructionB_valid) begin
                         consumed_history[write_ptr + 1] <= instructionB;
-                        $display("Time: %0t | [BUFFER] Consumed B: %h (Total: %0d)", $time, instructionB, write_ptr + 2);
+                        $display("Time: %0t | [BUFFER] Consumed B: %h PC: %h (Total: %0d)", $time, instructionB, addressB, write_ptr + 2);
                         write_ptr <= write_ptr + 2;
                     end
                 end
