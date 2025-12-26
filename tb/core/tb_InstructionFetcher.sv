@@ -59,6 +59,8 @@ module tb_InstructionFetcher;
 
     // Main test sequence
     initial begin
+        $dumpfile("InstructionFetcher.vcd");
+        $dumpvars(0);
         // Initialize memory
         mem[0] = 64'h11111111_00000000;
         mem[1] = 64'h33333333_22222222;
@@ -66,7 +68,7 @@ module tb_InstructionFetcher;
         mem[3] = 64'h77777777_66666666;
         mem[4] = 64'h99999999_88888888;
         mem[5] = 64'hBBBBBBBB_AAAAAAAA;
-        mem[6] = 64'hDDDDDDDD_CCCCCCCC;
+        mem[6] = 64'hDDDDDDDD_FE0000E3;
         mem[7] = 64'hFFFFFFFF_EEEEEEEE;
 
         // Initialize signals
@@ -111,6 +113,10 @@ module tb_InstructionFetcher;
         stall = 1;
         #10
         stall = 0;
+        #10
+        #10
+        #10
+        #10
         #10
         #10
         

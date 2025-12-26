@@ -33,6 +33,26 @@ module InstructionFetcher(
     logic [31:0] delayed_pc;        // Part of metadata
     logic [63:0] savedInstruction;  // For stalling
 
+    // Branch Predictor fields
+    logic [31:0] instruction_low;
+    logic [31:0] instruction_high;
+    assign instruction_low = delayed_stall ? savedInstruction[31:0]  : fetchedInstruction[31:0];
+    assign instruction_high = delayed_stall ? savedInstruction[63:32] : fetchedInstruction[63:32];
+
+    logic take_branch;
+    logic instrBSkipped;
+    logic [31:0] target;
+
+    BranchPredictor branchPredictor(
+        .instruction_low(instruction_low),
+        .instruction_high(instruction_high),
+        .delayed_pc2(delayed_pc2),
+        .delayed_pc(delayed_pc),
+        .take_branch(take_branch),
+        .target(target),
+        .instrBSkipped(instrBSkipped)
+    );
+
     // Update PC logic
     always_ff @( posedge clk ) begin
         if (reset) begin
@@ -40,7 +60,11 @@ module InstructionFetcher(
         end else if (branchTaken) begin
             pc <= branchTarget;
         end else if (!stall) begin
-            pc <= (pc[2]) ? (pc + 32'd4) : (pc + 32'd8);
+            if (take_branch) begin
+                pc <= target;
+            end else begin
+                pc <= (pc[2]) ? (pc + 32'd4) : (pc + 32'd8);
+            end
         end
     end
 
@@ -53,6 +77,8 @@ module InstructionFetcher(
             delayed_pc      <= 0;
             savedInstruction <= 0;
         end else if (branchTaken) begin
+            fetch_buf_valid <= 0;
+        end else if (take_branch) begin
             fetch_buf_valid <= 0;
         end else if (!stall) begin
             delayed_pc2     <= branchTaken ? branchTarget[2] : pc[2];
@@ -84,7 +110,7 @@ module InstructionFetcher(
                 addressB           = 32'h0;
             end else begin
                 instructionA_valid = 1;
-                instructionB_valid = 1;
+                instructionB_valid = 1 & !instrBSkipped;
                 instructionA       = delayed_stall ? savedInstruction[31:0]  : fetchedInstruction[31:0];
                 instructionB       = delayed_stall ? savedInstruction[63:32] : fetchedInstruction[63:32];
                 addressA           = delayed_pc;
