@@ -29,7 +29,6 @@ module InstructionFetcher(
     // Delayed Control signals
     logic delayed_pc2;              // For the memory alignment part, check if the arrived data from last cycle is aligned by 4 or not
     logic delayed_stall;
-    logic delayed_invalid;          // For if we stall, but we already fetched the instruction, mark it as not valid, or when branching
     logic fetch_buf_valid;          // Handle special case when stall and branch is at the same time.
     logic [31:0] delayed_pc;        // Part of metadata
     logic [63:0] savedInstruction;  // For stalling
@@ -39,7 +38,7 @@ module InstructionFetcher(
         if (reset) begin
             pc <= 32'h0;
         end else if (branchTaken) begin
-             pc <= branchTarget;
+            pc <= branchTarget;
         end else if (!stall) begin
             pc <= (pc[2]) ? (pc + 32'd4) : (pc + 32'd8);
         end
@@ -49,17 +48,14 @@ module InstructionFetcher(
     always_ff @( posedge clk ) begin
         if (reset) begin
             delayed_pc2     <= 0;
-            delayed_invalid <= 1;
             fetch_buf_valid <= 0;
+            delayed_stall   <= 0;
+            delayed_pc      <= 0;
+            savedInstruction <= 0;
         end else if (branchTaken) begin
             fetch_buf_valid <= 0;
         end else if (!stall) begin
-            if (branchTaken) begin
-                delayed_pc2     <= branchTarget[2];
-            end else begin
-                delayed_pc2     <= pc[2];
-            end
-            delayed_invalid <= branchTaken;
+            delayed_pc2     <= branchTaken ? branchTarget[2] : pc[2];
             fetch_buf_valid <= 1;
         end
         delayed_pc       <= pc;
@@ -70,12 +66,14 @@ module InstructionFetcher(
     // Memory Alignment logic
     always_comb begin
         // Default values to prevent latches
-        instructionA = 32'h0;
-        instructionB = 32'h0;
+        instructionA       = 32'h0;
+        instructionB       = 32'h0;
+        addressA           = 32'h0;
+        addressB           = 32'h0;
         instructionA_valid = 1'b0;
         instructionB_valid = 1'b0;
 
-        if (!delayed_invalid && fetch_buf_valid && !stall && !reset) begin
+        if (fetch_buf_valid && !stall && !reset) begin
             // Check if its aligned by 4
             if (delayed_pc2) begin
                 instructionA_valid = 1;

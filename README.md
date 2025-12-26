@@ -5,7 +5,8 @@ This is a project to implement a pipelined RISC-V CPU core.
 ## Implementation Checklist
 
 - [x] Register File
-- [ ] Instruction Fetch (IF)
+- [x] Instruction Fetch (IF)
+- [ ] Static Branch Predictor
 - [ ] Instruction Decoder/Dispatcher
 - [ ] Instruction Buffer
 - [ ] Scoreboard
