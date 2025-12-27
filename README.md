@@ -21,3 +21,6 @@ This is a project to implement a pipelined RISC-V CPU core.
 ├── src/
 └── tb/
 ```
+
+
+Future me notes. The decoder/dispatcher only send the pop signal when it already issued the instruction. So expect that the entry is already popped next right when the pop instruction is sent. But still, WIP
