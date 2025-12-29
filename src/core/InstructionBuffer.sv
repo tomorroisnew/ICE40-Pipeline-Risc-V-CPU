@@ -29,7 +29,7 @@ module InstructionBuffer(
 
     logic [63:0] instructionBuffer [7:0];
     logic [3:0] count;
-    logic [3:0] tail;
+    integer i;
 
     // Output bottom 3 to dispatcher
     assign entry0_instruction = instructionBuffer[0][31:0];
@@ -39,61 +39,109 @@ module InstructionBuffer(
     assign entry_count        = count;
 
     // Stall logic
-    assign stall = (count + instructionA_valid + instructionB_valid - pop0 - pop1) >= 8; 
-    assign tail  = count - (pop0 + pop1);
+    assign stall = (count + instructionA_valid + instructionB_valid - pop0 - pop1) >= 8;
 
-    // Fuck ass shifting logic.
-    always_ff @(posedge clk) begin
+    logic [63:0] dbg0, dbg1, dbg2, dbg3, dbg4, dbg5, dbg6, dbg7;
+    assign dbg0 = instructionBuffer[0];
+    assign dbg1 = instructionBuffer[1];
+    assign dbg2 = instructionBuffer[2];
+    assign dbg3 = instructionBuffer[3];
+    assign dbg4 = instructionBuffer[4];
+    assign dbg5 = instructionBuffer[5];
+    assign dbg6 = instructionBuffer[6];
+    assign dbg7 = instructionBuffer[7];
+
+    always_ff @( posedge clk ) begin
         if (rst || flush) begin
             count <= 0;
-        end else begin 
-            if (pop0 && pop1) begin
-                instructionBuffer[0] <= instructionBuffer[2];
-                instructionBuffer[1] <= instructionBuffer[3];
-                instructionBuffer[2] <= instructionBuffer[4];
-                instructionBuffer[3] <= instructionBuffer[5];
-                instructionBuffer[4] <= instructionBuffer[6];
-                instructionBuffer[5] <= instructionBuffer[7];
-                instructionBuffer[6] <= 0;
-                instructionBuffer[7] <= 0;
-            end else if (pop0) begin
-                instructionBuffer[0] <= instructionBuffer[1];
-                instructionBuffer[1] <= instructionBuffer[2];
-                instructionBuffer[2] <= instructionBuffer[3];
-                instructionBuffer[3] <= instructionBuffer[4];
-                instructionBuffer[4] <= instructionBuffer[5];
-                instructionBuffer[5] <= instructionBuffer[6];
-                instructionBuffer[6] <= instructionBuffer[7];
-                instructionBuffer[7] <= 0;
-            end else if (pop1) begin
-                instructionBuffer[1] <= instructionBuffer[2];
-                instructionBuffer[2] <= instructionBuffer[3];
-                instructionBuffer[3] <= instructionBuffer[4];
-                instructionBuffer[4] <= instructionBuffer[5];
-                instructionBuffer[5] <= instructionBuffer[6];
-                instructionBuffer[7] <= 0;
-            end 
-
-            // --------------------
-            // PUSH LOGIC
-            // --------------------
-            if(instructionA_valid && instructionB_valid && tail <= 6) begin
-                instructionBuffer[tail][31:0] <= instructionA;
-                instructionBuffer[tail][63:32] <= addressA;
-                instructionBuffer[tail + 1][31:0] <= instructionB;
-                instructionBuffer[tail + 1][63:32] <= addressB;
-            end else if (instructionA_valid && tail <= 7) begin
-                instructionBuffer[tail][31:0] <= instructionA;
-                instructionBuffer[tail][63:32] <= addressA;
-            end else if (instructionB_valid && tail <= 7) begin
-                instructionBuffer[tail][31:0] <= instructionB;
-                instructionBuffer[tail][63:32] <= addressB;
+            for (i = 0; i < 8; i++) begin
+                instructionBuffer[i] <= '0;
             end
+        end else begin
+            if (pop0 && pop1) begin
+                for (i = 0; i < 6; i++) begin
+                    instructionBuffer[i] <= instructionBuffer[i+2];
+                end
+                instructionBuffer[6] <= '0;
+                instructionBuffer[7] <= '0;
 
-            // --------------------
-            // COUNT LOGIC
-            // --------------------
-            count <= count + instructionA_valid + instructionB_valid - pop0 - pop1;
+                if (instructionA_valid && instructionB_valid) begin
+                    instructionBuffer[count - 2][31:0]  <= instructionA;
+                    instructionBuffer[count - 2][63:32] <= addressA;
+
+                    instructionBuffer[count - 1][31:0]      <= instructionB;
+                    instructionBuffer[count - 1][63:32]     <= addressB;
+
+                    count <= count; // What is popped just got refilled
+                end else if (instructionA_valid) begin
+                    instructionBuffer[count - 2][31:0]  <= instructionA;
+                    instructionBuffer[count - 2][63:32] <= addressA;
+                    count <= count - 1;
+                end else begin
+                    count <= count - 2;
+                end
+            end else if (pop0) begin
+                for (i = 0; i < 7; i++) begin
+                    instructionBuffer[i] <= instructionBuffer[i+1];
+                end
+                instructionBuffer[7] <= '0;
+
+                if (instructionA_valid && instructionB_valid) begin
+                    instructionBuffer[count - 1][31:0]  <= instructionA;
+                    instructionBuffer[count - 1][63:32] <= addressA;
+
+                    // Append the other instruction in the top
+                    instructionBuffer[count][31:0]      <= instructionB;
+                    instructionBuffer[count][63:32]     <= addressB;
+
+                    count <= count + 1;
+                end else if(instructionA_valid) begin
+                    instructionBuffer[count - 1][31:0]  <= instructionA;
+                    instructionBuffer[count - 1][63:32] <= addressA;
+                    count <= count;
+                end else begin
+                    count <= count - 1;
+                end
+            end else if (pop1) begin
+                for (i = 1; i < 7; i++) begin
+                    instructionBuffer[i] <= instructionBuffer[i+1];
+                end
+                instructionBuffer[7] <= '0;
+
+                if (instructionA_valid && instructionB_valid) begin
+                    instructionBuffer[count - 1][31:0]  <= instructionA;
+                    instructionBuffer[count - 1][63:32] <= addressA;
+
+                    // Append the other instruction in the top
+                    instructionBuffer[count][31:0]      <= instructionB;
+                    instructionBuffer[count][63:32]     <= addressB;
+
+                    count <= count + 1;
+                end else if(instructionA_valid) begin
+                    instructionBuffer[count - 1][31:0]  <= instructionA;
+                    instructionBuffer[count - 1][63:32] <= addressA;
+                    count <= count;
+                end else begin
+                    count <= count - 1;
+                end
+            end else begin
+                if (instructionA_valid && instructionB_valid) begin
+                    // Append on top
+                    instructionBuffer[count][31:0]  <= instructionA;
+                    instructionBuffer[count][63:32] <= addressA;
+
+                    instructionBuffer[count + 1][31:0]      <= instructionB;
+                    instructionBuffer[count + 1][63:32]     <= addressB;
+
+                    count <= count + 2;
+                end else if (instructionA_valid) begin
+                    instructionBuffer[count][31:0]  <= instructionA;
+                    instructionBuffer[count][63:32] <= addressA;
+                    count <= count + 1;
+                end else begin
+                    count <= count;
+                end
+            end
         end
     end
 

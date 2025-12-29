@@ -34,9 +34,9 @@ synth:
 test:
 	@mkdir -p $(BUILD_DIR)
 	@echo "--- Simulating Module: $(MODULE) ---"
-	$(IVERILOG) -g2012 -o $(BUILD_DIR)/$(MODULE)_sim.out $(SRC_DIR)/$(MODULE).sv $(TB_DIR)/tb_$(MODULE).sv $(SRC_DIR)/BranchPredictor.sv
+	$(IVERILOG) -g2012 -o $(BUILD_DIR)/$(MODULE)_sim.out $(SRC_DIR)/$(MODULE).sv $(TB_DIR)/tb_$(MODULE).sv $(SRC_DIR)/BranchPredictor.sv $(SRC_DIR)/InstructionFetcher.sv
 	$(VVP) $(BUILD_DIR)/$(MODULE)_sim.out
-	gtkwave InstructionBuffer.vcd
+	gtkwave dump.vcd
 	@echo "To view waves: $(GTKWAVE) dump.vcd"
 
 pnr:
@@ -60,5 +60,6 @@ pnr:
 clean:
 	rm -rf $(BUILD_DIR)
 	rm -rf $(synth_DIR)
+	rm -rf *.vcd
 
 .PHONY: synth test clean
