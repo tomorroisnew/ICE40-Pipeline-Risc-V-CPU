@@ -7,8 +7,8 @@ This is a project to implement a pipelined RISC-V CPU core.
 - [x] Register File
 - [x] Instruction Fetch (IF)
 - [x] Static Branch Predictor
+- [x] Instruction Buffer (Might need to rewrite so its In order, and just have reservation stations)
 - [ ] Instruction Decoder/Dispatcher
-- [ ] Instruction Buffer
 - [ ] Scoreboard
 - [ ] Static Branch Predictor
 - [ ] ROB
