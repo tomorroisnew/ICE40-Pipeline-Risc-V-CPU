@@ -8,10 +8,21 @@ This is a project to implement a pipelined RISC-V CPU core.
 - [x] Instruction Fetch (IF)
 - [x] Static Branch Predictor
 - [x] Instruction Buffer (Might need to rewrite so its In order, and just have reservation stations)
+- [ ] Reserve statations
+- [ ] Execution Units
+  - [ ] SIU0
+  - [ ] SIU1
+  - [ ] Branch Unit
+  - [ ] Control Unit
+  - [ ] FPU
+  - [ ] LSU
 - [ ] Instruction Decoder/Dispatcher
 - [ ] Scoreboard
-- [ ] Static Branch Predictor
 - [ ] ROB
+- [ ] CACHE
+  - [ ] I-CACHE
+  - [ ] D-CACHE
+- [ ] Memory Mapper  
 
 ## Directory Structure
 
